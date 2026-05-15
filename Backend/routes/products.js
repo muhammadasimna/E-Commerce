@@ -97,4 +97,28 @@ router.put('/:id', auth, (req, res) => {
     });
 });
 
+// Delete a product (Protected, Owner only)
+router.delete('/:id', auth, (req, res) => {
+    const owner_id = req.user.id;
+    const productId = req.params.id;
+
+    // Check ownership
+    db.get('SELECT owner_id FROM products WHERE id = ?', [productId], (err, row) => {
+        if (err || !row) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        if (row.owner_id !== owner_id) {
+            return res.status(403).json({ message: 'You are not authorized to delete this product' });
+        }
+
+        db.run('DELETE FROM products WHERE id = ?', [productId], function(err) {
+            if (err) {
+                return res.status(500).json({ message: 'Error deleting product' });
+            }
+            res.json({ message: 'Product deleted successfully' });
+        });
+    });
+});
+
 module.exports = router;

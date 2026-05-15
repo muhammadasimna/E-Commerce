@@ -99,6 +99,9 @@
                                 <button class="btn btn-primary" style="flex: 1;" onclick="window.location.href='/edit-product?id=${product.id}'">
                                     <i class="fa-solid fa-pen-to-square"></i> Edit
                                 </button>
+                                <button class="btn btn-secondary" style="width: 45px; padding: 0;" onclick="deleteProduct(${product.id})">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -106,6 +109,34 @@
             } catch (err) {
                 grid.innerHTML = '<p>Error loading your products.</p>';
             }
+        }
+
+        async function deleteProduct(id) {
+            showCustomModal({
+                title: 'Delete Product',
+                message: 'Are you sure you want to permanently delete this product listing?',
+                type: 'confirm',
+                onConfirm: async () => {
+                    const token = localStorage.getItem('token');
+                    try {
+                        const response = await fetch(`${API_URL}/products/${id}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (response.ok) {
+                            showCustomModal({
+                                title: 'Deleted',
+                                message: 'Product listing removed successfully.',
+                                onConfirm: () => loadMyProducts()
+                            });
+                        } else {
+                            showCustomModal({ title: 'Error', message: 'Failed to delete product.' });
+                        }
+                    } catch (err) {
+                        showCustomModal({ title: 'Error', message: 'Connection failed.' });
+                    }
+                }
+            });
         }
     </script>
 </body>
