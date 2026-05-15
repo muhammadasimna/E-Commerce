@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina - Manage Sales</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sales-container { padding: 50px 0; }
+        .view-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .view-btn {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .view-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .view-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.3);
+        }
+        
+        #sales-list {
+            display: grid;
+            gap: 20px;
+            transition: 0.3s;
+        }
+        
+        /* Grid View Default */
+        #sales-list.grid {
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        }
+        
+        /* List View */
+        #sales-list.list {
+            grid-template-columns: 1fr;
+        }
+
+        .sales-card {
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            position: relative;
+        }
+
+        #sales-list.grid .sales-card {
+            flex-direction: column;
+            text-align: center;
+            padding: 25px;
+        }
+
+        #sales-list.grid .product-thumb {
+            width: 100%;
+            height: 180px;
+            margin-bottom: 15px;
+        }
+
+        #sales-list.grid .action-btns {
+            margin-left: 0 !important;
+            width: 100%;
+        }
+
+        #sales-list.grid .sales-card > div {
+            text-align: center !important;
+            width: 100%;
+        }
+
+        /* List View specific thumb size */
+        #sales-list.list .product-thumb {
+            width: 80px;
+            height: 80px;
+        }
+
+        .product-thumb {
+            border-radius: 12px;
+            object-fit: cover;
+            border: 1px solid var(--glass-border);
+            transition: 0.3s;
+        }
+
+        .buyer-info { font-size: 0.85rem; color: var(--text-muted); }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .status-pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .status-submitted { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .status-rejected { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        
+        .action-btns { display: flex; gap: 10px; margin-top: 10px; justify-content: center; }
+        .btn-small { padding: 6px 12px; font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">LUMINA</div>
+            <i class="fa-solid fa-xmark" id="close-sidebar" style="cursor: pointer; font-size: 1.5rem;"></i>
+        </div>
+        <div id="sidebar-user-profile"></div>
+        <div class="sidebar-links" id="sidebar-links">
+            <!-- Dynamic Links -->
+        </div>
+    </div>
+    <div class="overlay" id="overlay"></div>
+
+    <header>
+        <div class="container">
+            <nav>
+                <div class="menu-btn" id="open-sidebar"><i class="fa-solid fa-bars"></i></div>
+                <a href="/" class="logo">LUMINA</a>
+                <ul class="nav-links" id="nav-links">
+                    <!-- Dynamic Links -->
+                </ul>
+                <div class="nav-actions">
+                    <button id="theme-toggle" class="theme-toggle"><i class="fa-solid fa-moon"></i></button>
+                    <a href="/cart" class="cart-icon">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                    <div id="user-link"></div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container sales-container">
+        <div class="sales-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px;">
+            <h1 style="margin: 0;">Customer Orders</h1>
+            <div class="view-controls">
+                <button class="view-btn active" id="grid-view-btn" title="Grid View">
+                    <i class="fa-solid fa-grip"></i>
+                    <span>Grid</span>
+                </button>
+                <button class="view-btn" id="list-view-btn" title="List View">
+                    <i class="fa-solid fa-list"></i>
+                    <span>List</span>
+                </button>
+            </div>
+        </div>
+        <div id="sales-list" class="grid">
+            <div class="loading">Loading your sales data...</div>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (!token) { window.location.href = '/auth'; return; }
+            updateUI();
+            loadSales();
+
+            // View Toggle Logic
+            const gridBtn = document.getElementById('grid-view-btn');
+            const listBtn = document.getElementById('list-view-btn');
+            const salesList = document.getElementById('sales-list');
+
+            gridBtn.onclick = () => {
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+                salesList.className = 'grid';
+            };
+
+            listBtn.onclick = () => {
+                listBtn.classList.add('active');
+                gridBtn.classList.remove('active');
+                salesList.className = 'list';
+            };
+        });
+
+        async function loadSales() {
+            const list = document.getElementById('sales-list');
+            const token = localStorage.getItem('token');
+
+            try {
+                const response = await fetch(`${API_URL}/orders/seller-orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const sales = await response.json();
+                
+                // Refresh header UI to clear the badge now that orders are read
+                updateUI();
+
+                if (sales.length === 0) {
+                    list.innerHTML = '<div style="text-align: center; padding: 50px;"><p>No orders received for your products yet.</p></div>';
+                    return;
+                }
+
+                list.innerHTML = sales.map(sale => `
+                    <div class="sales-card glass animate-fade-in">
+                        <img src="${sale.image_url}" class="product-thumb">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 1.1rem;">${sale.product_name}</div>
+                            <div class="buyer-info" style="color: var(--text-muted); font-size: 0.85rem;">
+                                Ordered by: ${sale.buyer_name} | Qty: ${sale.quantity}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">
+                                Price: $${sale.item_price.toFixed(2)} | Date: ${new Date(sale.created_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <div style="text-align: right; min-width: 100px;">
+                            <div style="font-weight: 700; color: var(--primary); font-size: 1.2rem;">
+                                $${(sale.item_price * sale.quantity).toFixed(2)}
+                            </div>
+                            <span class="status-badge status-${sale.status}" style="margin-top: 5px;">${sale.status}</span>
+                        </div>
+                        <div class="action-btns" style="margin-left: 15px;">
+                            ${sale.status === 'pending' ? `
+                                <button class="btn btn-primary btn-small" onclick="updateStatus(${sale.item_id}, 'submitted')">Submit</button>
+                                <button class="btn btn-secondary btn-small" onclick="updateStatus(${sale.item_id}, 'rejected')">Reject</button>
+                            ` : `<span style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">Action Taken</span>`}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = '<p>Error loading sales.</p>';
+            }
+        }
+
+        async function updateStatus(itemId, status) {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch(`${API_URL}/orders/items/${itemId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status })
+                });
+
+                if (response.ok) {
+                    showCustomModal({
+                        title: 'Status Updated',
+                        message: `Order has been ${status === 'submitted' ? 'submitted (approved)' : 'rejected'}.`,
+                        onConfirm: () => loadSales()
+                    });
+                }
+            } catch (err) {
+                showCustomModal({ title: 'Error', message: 'Failed to update status' });
+            }
+        }
+    </script>
+</body>
+</html>

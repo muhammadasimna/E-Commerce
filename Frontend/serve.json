@@ -1,0 +1,14 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/product", "destination": "/product.html" },
+    { "source": "/cart", "destination": "/cart.html" },
+    { "source": "/orders", "destination": "/orders.html" },
+    { "source": "/add-product", "destination": "/add-product.html" },
+    { "source": "/auth", "destination": "/auth.html" },
+    { "source": "/my-products", "destination": "/my-products.html" },
+    { "source": "/edit-product", "destination": "/edit-product.html" },
+    { "source": "/sales", "destination": "/sales.html" }
+  ]
+}

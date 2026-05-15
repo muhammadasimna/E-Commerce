@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina - Your Cart</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .cart-page { padding: 50px 0; }
+        .view-controls { display: flex; gap: 10px; }
+        .view-btn {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .view-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.3);
+        }
+
+        #cart-items-grid {
+            display: grid;
+            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            margin-bottom: 40px;
+        }
+
+        .cart-card {
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .cart-card-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .cart-card-price {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.2rem;
+            margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+            .cart-table { display: none; }
+            #cart-items-grid { display: grid !important; }
+            .view-controls { display: flex; width: 100%; justify-content: center; }
+            #fixed-summary { display: none; }
+        }
+    </style></head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">LUMINA</div>
+            <i class="fa-solid fa-xmark" id="close-sidebar" style="cursor: pointer; font-size: 1.5rem;"></i>
+        </div>
+        <div id="sidebar-user-profile"></div>
+        <div class="sidebar-links" id="sidebar-links"></div>
+    </div>
+    <div class="overlay" id="overlay"></div>
+
+    <header>
+        <div class="container">
+            <nav>
+                <div class="menu-btn" id="open-sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
+                <a href="/" class="logo">LUMINA</a>
+                <ul class="nav-links" id="nav-links"></ul>
+                <div class="nav-actions">
+                    <button id="theme-toggle" class="theme-toggle">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                    <a href="/cart" class="cart-icon">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                    <div id="user-link"></div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container cart-page">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px;">
+            <h1 style="margin: 0;">Shopping Cart</h1>
+            <div class="view-controls">
+                <button class="view-btn" id="grid-view-btn" title="Grid View">
+                    <i class="fa-solid fa-grip"></i>
+                    <span>Grid</span>
+                </button>
+                <button class="view-btn active" id="list-view-btn" title="List View">
+                    <i class="fa-solid fa-list"></i>
+                    <span>List</span>
+                </button>
+                <button class="view-btn" id="open-summary-btn" style="background: var(--primary); color: white; border-color: var(--primary);">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Checkout All</span>
+                </button>
+            </div>
+        </div>
+        <div id="cart-content" style="display: none;">
+            <div id="cart-items-grid" class="grid" style="display: none;"></div>
+            <table class="cart-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="cart-items"></tbody>
+            </table>
+        </div>
+        <div id="empty-cart" style="display: none; text-align: center; padding: 100px 0;">
+            <i class="fa-solid fa-cart-plus" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 20px;"></i>
+            <h2>Your cart is empty</h2>
+            <p style="margin-bottom: 30px; color: var(--text-muted);">Looks like you haven't added anything yet.</p>
+            <a href="/" class="btn btn-primary" style="width: auto; padding: 15px 40px;">Start Shopping</a>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCart();
+            updateUI();
+
+            // View Toggle Logic
+            const gridBtn = document.getElementById('grid-view-btn');
+            const listBtn = document.getElementById('list-view-btn');
+            const table = document.querySelector('.cart-table');
+            const grid = document.getElementById('cart-items-grid');
+
+            if (gridBtn && listBtn) {
+                gridBtn.onclick = () => {
+                    gridBtn.classList.add('active');
+                    listBtn.classList.remove('active');
+                    table.style.display = 'none';
+                    grid.style.display = 'grid';
+                    renderCart();
+                };
+
+                listBtn.onclick = () => {
+                    listBtn.classList.add('active');
+                    gridBtn.classList.remove('active');
+                    table.style.display = 'table';
+                    grid.style.display = 'none';
+                    renderCart();
+                };
+            }
+
+            // Order Summary Modal Logic
+            const openSummaryBtn = document.getElementById('open-summary-btn');
+            if (openSummaryBtn) {
+                openSummaryBtn.onclick = () => {
+                    const cart = getCart();
+                    if (cart.length === 0) {
+                        showCustomModal({ title: 'Empty Cart', message: 'Add some items to your cart first!' });
+                        return;
+                    }
+
+                    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                    const totalText = `$${subtotal.toFixed(2)}`;
+
+                    showCustomModal({
+                        title: 'Order Summary',
+                        message: `
+                            <div class="summary-popup-content">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span>Items (${cart.length}):</span>
+                                    <span>${totalText}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span>Shipping:</span>
+                                    <span style="color: #10b981;">Free</span>
+                                </div>
+                                <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 15px 0;">
+                                <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.2rem; color: var(--primary);">
+                                    <span>Total Amount:</span>
+                                    <span>${totalText}</span>
+                                </div>
+                            </div>
+                        `,
+                        type: 'confirm',
+                        onConfirm: () => {
+                            processCheckout();
+                        }
+                    });
+
+                    // Update the OK button text to "Place Order"
+                    const okBtn = document.getElementById('modal-ok');
+                    if (okBtn) okBtn.innerText = 'Place Order';
+                };
+            }
+        });
+
+        async function processCheckout() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showCustomModal({
+                    title: 'Login Required',
+                    message: 'Please login to checkout',
+                    onConfirm: function() { window.location.href = '/auth'; }
+                });
+                return;
+            }
+
+            const cart = getCart();
+            if (cart.length === 0) return;
+
+            const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            try {
+                const response = await fetch(API_URL + '/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ items: cart, totalPrice: totalPrice })
+                });
+
+                if (response.ok) {
+                    showCustomModal({
+                        title: 'Success!',
+                        message: 'Order placed successfully!',
+                        onConfirm: function() {
+                            saveCart([]); 
+                            window.location.href = '/orders';
+                        }
+                    });
+                } else {
+                    const data = await response.json();
+                    showCustomModal({ title: 'Error', message: data.message || 'Order failed' });
+                }
+            } catch (err) {
+                showCustomModal({ title: 'Error', message: 'Server unreachable' });
+            }
+        }
+    </script>
+</body>
+</html>

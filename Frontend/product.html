@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina - Product Details</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .product-detail-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            padding: 80px 0;
+            align-items: center;
+        }
+        .detail-image {
+            width: 100%;
+            height: 500px;
+            object-fit: cover;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+        }
+        .detail-info h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        .detail-price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 25px;
+        }
+        .detail-desc {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+        .detail-meta {
+            margin-bottom: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--glass-border);
+        }
+        .meta-item {
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .meta-label {
+            color: var(--text-muted);
+            width: 100px;
+            display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            .product-detail-container {
+                grid-template-columns: 1fr;
+            }
+            .detail-image {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">LUMINA</div>
+            <i class="fa-solid fa-xmark" id="close-sidebar" style="cursor: pointer; font-size: 1.5rem;"></i>
+        </div>
+        <div id="sidebar-user-profile"></div>
+        <div class="sidebar-links">
+            <a href="/">Home</a>
+            <a href="/add-product">Sell Product</a>
+            <a href="/orders">My Orders</a>
+            <a href="/cart">Cart</a>
+        </div>
+    </div>
+    <div class="overlay" id="overlay"></div>
+
+    <header>
+        <div class="container">
+            <nav>
+                <div class="menu-btn" id="open-sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
+                
+                <a href="/" class="logo">LUMINA</a>
+
+                <ul class="nav-links">
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/add-product">Sell</a></li>
+                </ul>
+
+                <div class="nav-actions">
+                    <button id="theme-toggle" class="theme-toggle">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                    <a href="/cart" class="cart-icon">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                    <div id="user-link">
+                        <a href="/auth"><i class="fa-regular fa-user"></i></a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="product-detail" class="product-detail-container animate-fade-in">
+            <!-- Details loaded here -->
+            <div class="loading">Loading details...</div>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('id');
+            
+            if (!productId) {
+                window.location.href = '/';
+                return;
+            }
+
+            updateUI();
+            
+            try {
+                const response = await fetch(`${API_URL}/products/${productId}`);
+                const product = await response.json();
+
+                if (!response.ok) throw new Error('Product not found');
+
+                document.getElementById('product-detail').innerHTML = `
+                    <div class="product-image-container glass">
+                        <img src="${product.image_url}" alt="${product.name}" class="detail-image">
+                    </div>
+                    <div class="detail-info">
+                        <div class="product-category">${product.category}</div>
+                        <h1>${product.name}</h1>
+                        <div class="detail-price">$${product.price.toFixed(2)}</div>
+                        <p class="detail-desc">${product.description}</p>
+                        
+                        <div class="detail-meta">
+                            <div class="meta-item">
+                                <span class="meta-label">Status:</span>
+                                <span style="color: #10b981; font-weight: 600;">Available Now</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Stock:</span>
+                                <span>${product.stock} units in warehouse</span>
+                            </div>
+                        </div>
+
+                        <div class="qty-selector">
+                            <span class="meta-label">Quantity:</span>
+                            <button class="qty-btn" onclick="adjustQty(-1)"><i class="fa-solid fa-minus"></i></button>
+                            <input type="text" class="qty-input" id="detail-qty" value="1" readonly>
+                            <button class="qty-btn" onclick="adjustQty(1)"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+
+                        <div style="display: flex; gap: 15px;">
+                            <button class="btn btn-primary" onclick='handleAddToCart(${JSON.stringify(product).replace(/'/g, "&apos;")})' style="flex: 2; padding: 18px;">
+                                <i class="fa-solid fa-cart-plus"></i> Add to Shopping Cart
+                            </button>
+                            <button class="btn btn-secondary" style="flex: 1; padding: 18px;" onclick="window.location.href='/cart'">
+                                <i class="fa-solid fa-bolt"></i> View Cart
+                            </button>
+                        </div>
+
+                        <div class="trust-badge">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <div class="trust-text">
+                                <strong>Lumina Guarantee</strong><br>
+                                Secure checkout & 30-day premium return policy.
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Add quantity adjustment function to window
+                window.adjustQty = (delta) => {
+                    const input = document.getElementById('detail-qty');
+                    let val = parseInt(input.value) + delta;
+                    if (val < 1) val = 1;
+                    if (val > product.stock) val = product.stock;
+                    input.value = val;
+                };
+
+                window.handleAddToCart = (prod) => {
+                    const qty = parseInt(document.getElementById('detail-qty').value);
+                    for(let i=0; i<qty; i++) {
+                        addToCart(prod);
+                    }
+                };
+            } catch (err) {
+                document.getElementById('product-detail').innerHTML = `
+                    <div style="text-align: center; grid-column: 1 / -1; padding: 100px 0;">
+                        <h2>Product not found</h2>
+                        <a href="/" class="btn btn-secondary" style="width: auto; margin-top: 20px;">
+                            <i class="fa-solid fa-house"></i>
+                            <span>Back to Home</span>
+                        </a>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
