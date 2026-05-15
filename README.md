@@ -41,5 +41,13 @@ npm start
 -   **Database**: SQLite3.
 -   **Security**: JSON Web Tokens (JWT).
 
+## 🎥 Project Demonstration
+
+<div align="center">
+  <video src="Backend/Public/screen-capture.webm" width="100%" autoplay loop muted playsinline></video>
+</div>
+
+---
+
 ## 📄 License
 This project is developed as part of the CodeAlpha internship task.
